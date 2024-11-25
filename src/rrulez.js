@@ -94,16 +94,19 @@ i18next.init({
 });
 
 class RRuleZ {
-  constructor({ parsedRule, dtStart, locale = "en" }) {
+  constructor(parsedRule, startDate, locale = "en") {
     if (parsedRule && !parsedRule.FREQ) {
       throw new Error(i18next.t("FREQ_REQUIRED"));
     }
     if (parsedRule && !parsedRule.INTERVAL) {
       parsedRule.INTERVAL = 1;
     }
+    if (parsedRule && parsedRule.UNTIL) {
+      parsedRule.UNTIL = DateTime.fromISO(parsedRule.UNTIL);
+    }
     this.parsedRule = parsedRule || {}; // Parsed recurrence rule
 
-    this.dtStart = dtStart ? DateTime.fromISO(dtStart) : null; // Start date
+    this.dtStart = startDate ? DateTime.fromISO(startDate) : null; // Start date
     this.locale = locale; // Language/locale
     i18next.changeLanguage(locale); // Set the desired language
   }
@@ -397,10 +400,23 @@ class RRuleZ {
           occurrences = this.filterByWeekNo(occurrences, BYWEEKNO);
           break;
         case "WEEKLY":
-          for (let i = 0; i < INTERVAL * 7; i++) {
-            currentDate = currentDate.plus({ days: 1 });
-            occurrences.push(currentDate);
+          if (
+            BYDAY ||
+            BYWEEKNO ||
+            BYSETPOS ||
+            BYMONTH ||
+            BYMONTHDAY ||
+            BYYEARDAY
+          ) {
+            for (let i = 0; i < INTERVAL * 7 - 1; i++) {
+              currentDate = currentDate.plus({ days: 1 });
+              occurrences.push(currentDate);
+            }
+            currentDate = currentDate.minus({ days: 1 });
+          } else {
+            currentDate = currentDate.plus({ days: INTERVAL * 7 });
           }
+
           occurrences = this.filterByDay(occurrences, BYDAY);
           occurrences = this.filterByMonth(occurrences, BYMONTH);
           occurrences = this.filterByMonthDay(occurrences, BYMONTHDAY);
@@ -408,10 +424,23 @@ class RRuleZ {
           occurrences = this.filterByWeekNo(occurrences, BYWEEKNO);
           break;
         case "MONTHLY":
-          for (let i = 0; i < INTERVAL * 30; i++) {
-            currentDate = currentDate.plus({ days: 1 });
-            occurrences.push(currentDate);
+          if (
+            BYDAY ||
+            BYWEEKNO ||
+            BYSETPOS ||
+            BYMONTH ||
+            BYMONTHDAY ||
+            BYYEARDAY
+          ) {
+            for (let i = 0; i < INTERVAL * 30 - 1; i++) {
+              currentDate = currentDate.plus({ days: 1 });
+              occurrences.push(currentDate);
+            }
+            currentDate = currentDate.minus({ days: 1 });
+          } else {
+            currentDate = currentDate.plus({ months: INTERVAL });
           }
+
           occurrences = this.filterByDay(occurrences, BYDAY);
           occurrences = this.filterByMonth(occurrences, BYMONTH);
           occurrences = this.filterByMonthDay(occurrences, BYMONTHDAY);
@@ -419,9 +448,23 @@ class RRuleZ {
           occurrences = this.filterByWeekNo(occurrences, BYWEEKNO);
           break;
         case "YEARLY":
-          for (let i = 0; i < INTERVAL * 365; i++) {
-            currentDate = currentDate.plus({ days: 1 });
-            occurrences.push(currentDate);
+          if (
+            BYDAY ||
+            BYWEEKNO ||
+            BYSETPOS ||
+            BYMONTH ||
+            BYMONTHDAY ||
+            BYYEARDAY
+          ) {
+            //TODO make sure we have always the right numbers of "day in year"
+            for (let i = 0; i < INTERVAL * 365 - 1; i++) {
+              currentDate = currentDate.plus({ days: 1 });
+              occurrences.push(currentDate);
+            }
+            currentDate = currentDate.minus({ days: 1 });
+          } else {
+            //TODO make sure we have always the right numbers of "day in year"
+            currentDate = currentDate.plus({ years: INTERVAL });
           }
           occurrences = this.filterByDay(occurrences, BYDAY);
           occurrences = this.filterByMonth(occurrences, BYMONTH);
